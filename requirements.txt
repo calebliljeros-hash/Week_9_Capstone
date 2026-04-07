@@ -1,0 +1,9 @@
+# Database Dependencies
+psycopg2-binary==2.9.7
+
+# Environment Management
+python-dotenv==1.0.0
+
+# Development Dependencies (Optional)
+pytest==7.4.2
+pytest-cov==4.1.0
