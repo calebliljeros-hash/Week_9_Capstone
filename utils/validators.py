@@ -3,7 +3,7 @@
 Validation Utilities
 Input validation functions for the budget tracker
 
-TODO: Complete the validation functions
+Input validation functions for the budget tracker
 """
 
 from datetime import date, datetime
@@ -23,14 +23,22 @@ def validate_amount(amount_input):
     Raises:
         ValueError: If amount is invalid
     """
-    # TODO: Implement amount validation
-    # 1. Convert to string if needed
-    # 2. Remove currency symbols ($, commas)
-    # 3. Check if amount is positive
-    # 4. Convert to Decimal
-    # 5. Ensure max 2 decimal places for currency
-    
-    pass  # Remove when implemented
+    if amount_input is None:
+        raise ValueError("Amount is required")
+    amount_str = str(amount_input).strip().replace('$', '').replace(',', '')
+    if not amount_str:
+        raise ValueError("Amount cannot be empty")
+    try:
+        amount = Decimal(amount_str)
+    except InvalidOperation:
+        raise ValueError(f"Invalid amount: '{amount_input}'")
+    if not amount.is_finite():
+        raise ValueError(f"Invalid amount: '{amount_input}'")
+    if amount <= 0:
+        raise ValueError("Amount must be positive")
+    # Round to 2 decimal places for currency
+    amount = amount.quantize(Decimal('0.01'))
+    return amount
 
 def validate_date(date_input):
     """
@@ -45,13 +53,20 @@ def validate_date(date_input):
     Raises:
         ValueError: If date is invalid
     """
-    # TODO: Implement date validation
-    # 1. If already a date object, return it
-    # 2. If string, try common formats (YYYY-MM-DD, MM/DD/YYYY, etc.)
-    # 3. Check if date is not in the future (optional)
-    # 4. Check if date is not too old (optional, e.g., > 10 years ago)
-    
-    pass  # Remove when implemented
+    if isinstance(date_input, date) and not isinstance(date_input, datetime):
+        return date_input
+    if isinstance(date_input, datetime):
+        return date_input.date()
+    date_str = str(date_input).strip().lower()
+    if date_str == 'today':
+        return date.today()
+    formats = ['%Y-%m-%d', '%m/%d/%Y', '%m-%d-%Y']
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str, fmt).date()
+        except ValueError:
+            continue
+    raise ValueError(f"Invalid date format: '{date_input}'. Use YYYY-MM-DD or MM/DD/YYYY")
 
 def validate_transaction_type(transaction_type):
     """
@@ -66,13 +81,16 @@ def validate_transaction_type(transaction_type):
     Raises:
         ValueError: If type is invalid
     """
-    # TODO: Implement type validation
-    # 1. Convert to lowercase and strip whitespace
-    # 2. Accept variations: 'in', 'income', '+' for income
-    #                       'out', 'expense', 'exp', '-' for expense
-    # 3. Return standardized 'income' or 'expense'
-    
-    pass  # Remove when implemented
+    if not transaction_type:
+        raise ValueError("Transaction type is required")
+    type_str = str(transaction_type).strip().lower()
+    income_aliases = {'income', 'in', '+'}
+    expense_aliases = {'expense', 'exp', 'out', '-'}
+    if type_str in income_aliases:
+        return 'income'
+    if type_str in expense_aliases:
+        return 'expense'
+    raise ValueError(f"Invalid transaction type: '{transaction_type}'. Use 'income' or 'expense'")
 
 def validate_description(description):
     """
@@ -87,13 +105,15 @@ def validate_description(description):
     Raises:
         ValueError: If description is invalid
     """
-    # TODO: Implement description validation
-    # 1. Strip whitespace
-    # 2. Check minimum length (e.g., 3 characters)
-    # 3. Check maximum length (e.g., 200 characters)
-    # 4. Optional: Clean up extra whitespace
-    
-    pass  # Remove when implemented
+    if not description:
+        raise ValueError("Description is required")
+    description = str(description).strip()
+    description = ' '.join(description.split())  # collapse extra whitespace
+    if len(description) < 3:
+        raise ValueError("Description must be at least 3 characters")
+    if len(description) > 200:
+        raise ValueError("Description must be 200 characters or less")
+    return description
 
 def validate_category_name(name):
     """
@@ -108,13 +128,16 @@ def validate_category_name(name):
     Raises:
         ValueError: If name is invalid
     """
-    # TODO: Implement category name validation
-    # 1. Strip whitespace and title case
-    # 2. Check length (2-50 characters)
-    # 3. Allow letters, numbers, spaces, and basic punctuation
-    # 4. No leading/trailing spaces
-    
-    pass  # Remove when implemented
+    if not name:
+        raise ValueError("Category name is required")
+    name = str(name).strip().title()
+    if len(name) < 2:
+        raise ValueError("Category name must be at least 2 characters")
+    if len(name) > 50:
+        raise ValueError("Category name must be 50 characters or less")
+    if not re.match(r'^[a-zA-Z0-9\s&\-/]+$', name):
+        raise ValueError("Category name can only contain letters, numbers, spaces, &, -, /")
+    return name
 
 def validate_positive_integer(value, field_name="value"):
     """
@@ -130,12 +153,13 @@ def validate_positive_integer(value, field_name="value"):
     Raises:
         ValueError: If value is invalid
     """
-    # TODO: Implement positive integer validation
-    # 1. Convert to int
-    # 2. Check if positive (> 0)
-    # 3. Provide meaningful error messages using field_name
-    
-    pass  # Remove when implemented
+    try:
+        int_val = int(value)
+    except (ValueError, TypeError):
+        raise ValueError(f"{field_name} must be a whole number")
+    if int_val <= 0:
+        raise ValueError(f"{field_name} must be positive")
+    return int_val
 
 def is_valid_email(email):
     """
@@ -147,10 +171,10 @@ def is_valid_email(email):
     Returns:
         bool: True if valid format
     """
-    # TODO: Implement basic email validation using regex
-    # Pattern: basic email format with @ and domain
-    
-    pass  # Remove when implemented
+    if not email:
+        return False
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, str(email).strip()))
 
 def validate_date_range(start_date, end_date):
     """
@@ -166,12 +190,13 @@ def validate_date_range(start_date, end_date):
     Raises:
         ValueError: If date range is invalid
     """
-    # TODO: Implement date range validation
-    # 1. Ensure start_date <= end_date
-    # 2. Check reasonable range (not more than 10 years)
-    # 3. Both dates not in the future
-    
-    pass  # Remove when implemented
+    if not isinstance(start_date, date) or isinstance(start_date, datetime):
+        start_date = validate_date(start_date)
+    if not isinstance(end_date, date) or isinstance(end_date, datetime):
+        end_date = validate_date(end_date)
+    if start_date > end_date:
+        raise ValueError("Start date must be before or equal to end date")
+    return (start_date, end_date)
 
 def sanitize_input(user_input, max_length=None):
     """
@@ -187,13 +212,10 @@ def sanitize_input(user_input, max_length=None):
     if not isinstance(user_input, str):
         user_input = str(user_input)
     
-    # TODO: Implement input sanitization
-    # 1. Strip whitespace
-    # 2. Remove or escape dangerous characters
-    # 3. Limit length if max_length provided
-    # 4. Handle Unicode properly
-    
-    pass  # Remove when implemented
+    user_input = user_input.strip()
+    if max_length is not None and len(user_input) > max_length:
+        user_input = user_input[:max_length]
+    return user_input
 
 def main():
     """
