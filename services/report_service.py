@@ -3,7 +3,7 @@
 Report Service
 Generates financial reports and analytics
 
-TODO: Complete the report generation methods
+Generates financial reports and analytics
 """
 
 from datetime import date, datetime, timedelta
@@ -26,23 +26,23 @@ class ReportService:
         Returns:
             str: Formatted balance report
         """
-        print("📊 Generating Balance Report...")
+        print("Generating Balance Report...")
         
-        # TODO: Get transaction summary
-        # summary = TransactionService.get_transaction_summary()
-        
+        summary = TransactionService.get_transaction_summary()
         report = []
         report.append("\n" + "=" * 50)
-        report.append("💰 PERSONAL BUDGET BALANCE REPORT")
+        report.append("  PERSONAL BUDGET BALANCE REPORT")
         report.append("=" * 50)
-        
-        # TODO: Add balance information to report
-        # Format currency amounts nicely
-        # Show income, expenses, and net balance
-        
+        report.append(f"  Total Income:    {format_currency(summary['total_income'])}")
+        report.append(f"  Total Expenses:  {format_currency(summary['total_expenses'])}")
+        report.append("-" * 50)
+        report.append(f"  Net Balance:     {format_currency(summary['net_balance'])}")
+        report.append("")
+        report.append(f"  Transactions:    {summary['transaction_count']}")
+        report.append(f"    Income:        {summary['income_count']}")
+        report.append(f"    Expenses:      {summary['expense_count']}")
         report.append("\nGenerated: " + format_date(date.today()))
         report.append("=" * 50)
-        
         return "\n".join(report)
     
     @staticmethod
@@ -57,22 +57,26 @@ class ReportService:
         Returns:
             str: Formatted category report
         """
-        print(f"🏷️  Generating {transaction_type.title()} by Category Report...")
+        print(f"Generating {transaction_type.title()} by Category Report...")
         
         report = []
         report.append("\n" + "=" * 50)
-        report.append(f"📋 {transaction_type.upper()} BY CATEGORY REPORT")
+        report.append(f"  {transaction_type.upper()} BY CATEGORY REPORT")
         report.append("=" * 50)
         
-        # TODO: Get category spending data
-        # category_data = TransactionService.get_spending_by_category(transaction_type)
-        
-        # TODO: Sort categories by amount (highest first)
-        # Show top N categories with percentages
-        
+        category_data = TransactionService.get_spending_by_category(transaction_type)
+        total = sum(category_data.values()) if category_data else Decimal('0')
+        for i, (category, amount) in enumerate(category_data.items()):
+            if i >= top_n:
+                break
+            pct = float(amount / total) if total > 0 else 0
+            bar_len = int(pct * 30)
+            bar = "=" * bar_len
+            report.append(f"  {category:<20} {format_currency(amount):>12}  ({pct:.1%})  {bar}")
+        report.append("-" * 50)
+        report.append(f"  {'TOTAL':<20} {format_currency(total):>12}")
         report.append("\nGenerated: " + format_date(date.today()))
         report.append("=" * 50)
-        
         return "\n".join(report)
     
     @staticmethod
@@ -97,27 +101,20 @@ class ReportService:
             "July", "August", "September", "October", "November", "December"
         ]
         
-        print(f"📅 Generating {month_names[month-1]} {year} Report...")
+        print(f"Generating {month_names[month-1]} {year} Report...")
         
         report = []
         report.append("\n" + "=" * 50)
-        report.append(f"📅 MONTHLY REPORT - {month_names[month-1].upper()} {year}")
+        report.append(f"  MONTHLY REPORT - {month_names[month-1].upper()} {year}")
         report.append("=" * 50)
         
-        # TODO: Get monthly data
-        # monthly_data = TransactionService.get_monthly_summary(year, month)
-        
-        # TODO: Add monthly statistics
-        # - Total income for month
-        # - Total expenses for month
-        # - Net change
-        # - Number of transactions
-        # - Average transaction size
-        # - Top spending categories
-        
+        monthly_data = TransactionService.get_monthly_summary(year, month)
+        report.append(f"  Income:      {format_currency(monthly_data['total_income'])}")
+        report.append(f"  Expenses:    {format_currency(monthly_data['total_expenses'])}")
+        report.append(f"  Net Change:  {format_currency(monthly_data['net'])}")
+        report.append(f"  Transactions: {monthly_data['transaction_count']}")
         report.append("\nGenerated: " + format_date(date.today()))
         report.append("=" * 50)
-        
         return "\n".join(report)
     
     @staticmethod
@@ -131,29 +128,30 @@ class ReportService:
         Returns:
             str: Formatted trend report
         """
-        print(f"📈 Generating {days}-Day Trend Report...")
+        print(f"Generating {days}-Day Trend Report...")
         
         end_date = date.today()
         start_date = end_date - timedelta(days=days)
         
         report = []
         report.append("\n" + "=" * 50)
-        report.append(f"📈 FINANCIAL TREND REPORT ({days} DAYS)")
+        report.append(f"  FINANCIAL TREND REPORT ({days} DAYS)")
         report.append("=" * 50)
         report.append(f"Period: {format_date(start_date)} to {format_date(end_date)}")
         report.append("")
         
-        # TODO: Get transactions for date range
-        # Use Transaction.get_by_date_range()
-        
-        # TODO: Calculate trends
-        # - Daily average spending
-        # - Most active spending days
-        # - Trend direction (spending increasing/decreasing)
-        
+        transactions = Transaction.get_by_date_range(start_date, end_date)
+        income = sum(Decimal(str(t.amount)) for t in transactions if t.type == 'income')
+        expenses = sum(Decimal(str(t.amount)) for t in transactions if t.type == 'expense')
+        if days > 0:
+            report.append(f"  Daily Avg Income:   {format_currency(income / days)}")
+            report.append(f"  Daily Avg Expenses: {format_currency(expenses / days)}")
+        report.append(f"  Total Income:       {format_currency(income)}")
+        report.append(f"  Total Expenses:     {format_currency(expenses)}")
+        report.append(f"  Net:                {format_currency(income - expenses)}")
+        report.append(f"  Transactions:       {len(transactions)}")
         report.append("\nGenerated: " + format_date(date.today()))
         report.append("=" * 50)
-        
         return "\n".join(report)
     
     @staticmethod
@@ -164,33 +162,32 @@ class ReportService:
         Returns:
             str: Formatted dashboard
         """
-        print("📊 Generating Financial Dashboard...")
+        print("Generating Financial Dashboard...")
         
         dashboard = []
         dashboard.append("\n" + "=" * 60)
-        dashboard.append("📊 PERSONAL BUDGET TRACKER DASHBOARD")
+        dashboard.append("  PERSONAL BUDGET TRACKER DASHBOARD")
         dashboard.append("=" * 60)
         
-        # TODO: Get comprehensive data
-        # summary = TransactionService.get_transaction_summary()
-        # expense_categories = TransactionService.get_spending_by_category('expense')
-        # income_categories = TransactionService.get_spending_by_category('income')
-        
-        # TODO: Create dashboard sections:
-        # 1. Current Balance Overview
-        # 2. Recent Activity (last 7 days)
-        # 3. Top Spending Categories
-        # 4. Budget Health Indicators
-        
-        dashboard.append("\n📝 QUICK ACTIONS:")
-        dashboard.append("   1. Add New Transaction")
-        dashboard.append("   2. View Recent Transactions")
-        dashboard.append("   3. Generate Detailed Reports")
-        dashboard.append("   4. Manage Categories")
-        
+        summary = TransactionService.get_transaction_summary()
+        expense_categories = TransactionService.get_spending_by_category('expense')
+
+        dashboard.append(f"\n  BALANCE OVERVIEW")
+        dashboard.append(f"  Income:    {format_currency(summary['total_income'])}")
+        dashboard.append(f"  Expenses:  {format_currency(summary['total_expenses'])}")
+        dashboard.append(f"  Balance:   {format_currency(summary['net_balance'])}")
+        dashboard.append(f"\n  TOP SPENDING CATEGORIES")
+        for i, (cat, amt) in enumerate(expense_categories.items()):
+            if i >= 5:
+                break
+            dashboard.append(f"    {cat:<20} {format_currency(amt)}")
+        dashboard.append("\n  QUICK ACTIONS:")
+        dashboard.append("    1. Add New Transaction")
+        dashboard.append("    2. View Recent Transactions")
+        dashboard.append("    3. Generate Detailed Reports")
+        dashboard.append("    4. Manage Categories")
         dashboard.append("\nGenerated: " + format_date(date.today()))
         dashboard.append("=" * 60)
-        
         return "\n".join(dashboard)
     
     @staticmethod
@@ -201,28 +198,40 @@ class ReportService:
         Returns:
             dict: Health score and breakdown
         """
-        # TODO: Implement budget health calculation
-        # Consider factors like:
-        # - Income vs expenses ratio
-        # - Savings rate (if income > expenses)
-        # - Spending consistency
-        # - Emergency fund equivalent
-        
-        health_data = {
-            'score': 0,  # 0-100
-            'grade': 'F',  # A, B, C, D, F
+        summary = TransactionService.get_transaction_summary()
+        income = float(summary['total_income'])
+        expenses = float(summary['total_expenses'])
+
+        score = 50  # baseline
+        if income > 0:
+            savings_rate = (income - expenses) / income
+            score += int(savings_rate * 40)  # up to +40 for good savings
+        if expenses > 0 and income > expenses:
+            score += 10  # bonus for positive balance
+        score = max(0, min(100, score))
+
+        if score >= 90: grade = 'A'
+        elif score >= 80: grade = 'B'
+        elif score >= 70: grade = 'C'
+        elif score >= 60: grade = 'D'
+        else: grade = 'F'
+
+        recommendations = []
+        if income <= expenses:
+            recommendations.append("Reduce expenses or increase income to build savings")
+        if income == 0:
+            recommendations.append("Add income transactions to track your earnings")
+
+        return {
+            'score': score, 'grade': grade,
             'factors': {
-                'income_stability': 0,
-                'expense_control': 0,
-                'savings_rate': 0,
-                'budget_balance': 0
+                'income_stability': min(100, int(income / 100)) if income > 0 else 0,
+                'expense_control': max(0, 100 - int((expenses / max(income, 1)) * 100)),
+                'savings_rate': max(0, int(((income - expenses) / max(income, 1)) * 100)),
+                'budget_balance': score
             },
-            'recommendations': []
+            'recommendations': recommendations
         }
-        
-        # TODO: Calculate actual score based on financial data
-        
-        return health_data
     
     @staticmethod
     def export_report_to_file(report_content, filename):
@@ -237,13 +246,12 @@ class ReportService:
             bool: True if successful
         """
         try:
-            # TODO: Write report to file
-            # Use context managers for file operations
-            
-            pass
-            
+            with open(filename, 'w') as f:
+                f.write(report_content)
+            print(f"Report exported to {filename}")
+            return True
         except Exception as e:
-            print(f"❌ Error exporting report: {e}")
+            print(f"Error exporting report: {e}")
             return False
 
 def main():
