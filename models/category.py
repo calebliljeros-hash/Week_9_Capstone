@@ -44,7 +44,9 @@ class Category:
         try:
             if self.id:
                 query = "UPDATE categories SET name = %s, type = %s, description = %s WHERE id = %s"
-                self.db.execute_update(query, (self.name, self.type, self.description, self.id))
+                success = self.db.execute_update(query, (self.name, self.type, self.description, self.id))
+                if not success:
+                    return False
             else:
                 query = "INSERT INTO categories (name, type, description) VALUES (%s, %s, %s) RETURNING id"
                 result = self.db.execute_query(query, (self.name, self.type, self.description))

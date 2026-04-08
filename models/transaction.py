@@ -2,8 +2,6 @@
 """
 Transaction Model
 Handles transaction data operations and validation
-
-TODO: Complete the Transaction class with CRUD operations
 """
 
 from datetime import date, datetime
@@ -54,19 +52,34 @@ class Transaction:
         
         try:
             if self.id:
-                # TODO: UPDATE existing transaction
-                # Write SQL UPDATE query
-                # Use self.db.execute_update() with parameters
-                pass
+                query = """UPDATE transactions
+                           SET amount = %s, description = %s, transaction_date = %s,
+                               category_id = %s, type = %s
+                           WHERE id = %s"""
+                success = self.db.execute_update(query, (
+                    self.amount, self.description, self.transaction_date,
+                    self.category_id, self.type, self.id
+                ))
+                if not success:
+                    return False
             else:
-                # TODO: INSERT new transaction
-                # Write SQL INSERT query with RETURNING id
-                # Use self.db.execute_query() to get the new ID
-                # Set self.id to the returned ID
-                pass
-                
+                query = """INSERT INTO transactions (amount, description, transaction_date, category_id, type)
+                           VALUES (%s, %s, %s, %s, %s) RETURNING id"""
+                result = self.db.execute_query(query, (
+                    self.amount, self.description, self.transaction_date,
+                    self.category_id, self.type
+                ))
+                if result:
+                    self.id = result[0]['id']
+                    self.db.connection.commit()
+                else:
+                    if self.db.connection:
+                        self.db.connection.rollback()
+                    return False
         except Exception as e:
-            print(f"❌ Error saving transaction: {e}")
+            print(f"Error saving transaction: {e}")
+            if self.db.connection:
+                self.db.connection.rollback()
             return False
         finally:
             self.db.disconnect()
@@ -84,11 +97,11 @@ class Transaction:
             print("❌ Cannot delete transaction without ID")
             return False
             
-        # TODO: Implement delete method
-        # Write SQL DELETE query
-        # Use self.db.execute_update()
-        
-        pass  # Remove when implemented
+        self.db.connect()
+        try:
+            return self.db.execute_update("DELETE FROM transactions WHERE id = %s", (self.id,))
+        finally:
+            self.db.disconnect()
     
     def validate(self):
         """
@@ -97,15 +110,23 @@ class Transaction:
         Returns:
             bool: True if valid, False otherwise
         """
-        # TODO: Implement validation
-        # Check that:
-        # - amount is positive Decimal or float
-        # - description is not empty
-        # - transaction_date is a valid date
-        # - type is 'income' or 'expense'
-        # - category_id exists in database (optional check)
-        
-        pass  # Remove when implemented
+        try:
+            if self.amount is None or Decimal(str(self.amount)) <= 0:
+                print("Amount must be a positive number")
+                return False
+        except Exception:
+            print("Amount must be a valid positive number")
+            return False
+        if not self.description or len(str(self.description).strip()) < 1:
+            print("Description is required")
+            return False
+        if self.type not in ('income', 'expense'):
+            print("Transaction type must be 'income' or 'expense'")
+            return False
+        if not self.transaction_date:
+            print("Transaction date is required")
+            return False
+        return True
     
     @staticmethod
     def get_all():
@@ -118,25 +139,25 @@ class Transaction:
         db = DatabaseConnection()
         db.connect()
         
-        # TODO: Write SQL query to get all transactions
-        # JOIN with categories to get category name
-        # Order by transaction_date DESC
-        
-        query = """
-        -- TODO: Write your SELECT query here
-        -- Include: t.id, t.amount, t.description, t.transaction_date, t.type, c.name as category_name
-        -- FROM transactions t LEFT JOIN categories c ON t.category_id = c.id
-        -- ORDER BY t.transaction_date DESC
-        """
-        
-        results = db.execute_query(query)
-        db.disconnect()
-        
-        transactions = []
-        # TODO: Convert database results to Transaction objects
-        # Loop through results and create Transaction instances
-        
-        return transactions
+        query = """SELECT t.id, t.amount, t.description, t.transaction_date, t.type,
+                          t.category_id, c.name as category_name
+                   FROM transactions t
+                   LEFT JOIN categories c ON t.category_id = c.id
+                   ORDER BY t.transaction_date DESC"""
+        try:
+            results = db.execute_query(query)
+            transactions = []
+            for row in results:
+                t = Transaction(
+                    amount=row['amount'], description=row['description'],
+                    transaction_date=row['transaction_date'], category_id=row['category_id'],
+                    transaction_type=row['type'], transaction_id=row['id']
+                )
+                t.category_name = row.get('category_name', 'Uncategorized')
+                transactions.append(t)
+            return transactions
+        finally:
+            db.disconnect()
     
     @staticmethod
     def get_by_id(transaction_id):
@@ -149,10 +170,27 @@ class Transaction:
         Returns:
             Transaction: Transaction object or None if not found
         """
-        # TODO: Implement get_by_id
-        # Similar to get_all() but with WHERE clause
-        
-        pass
+        db = DatabaseConnection()
+        db.connect()
+        query = """SELECT t.id, t.amount, t.description, t.transaction_date, t.type,
+                          t.category_id, c.name as category_name
+                   FROM transactions t
+                   LEFT JOIN categories c ON t.category_id = c.id
+                   WHERE t.id = %s"""
+        try:
+            results = db.execute_query(query, (transaction_id,))
+            if results:
+                row = results[0]
+                t = Transaction(
+                    amount=row['amount'], description=row['description'],
+                    transaction_date=row['transaction_date'], category_id=row['category_id'],
+                    transaction_type=row['type'], transaction_id=row['id']
+                )
+                t.category_name = row.get('category_name', 'Uncategorized')
+                return t
+            return None
+        finally:
+            db.disconnect()
     
     @staticmethod
     def get_by_type(transaction_type):
@@ -165,10 +203,28 @@ class Transaction:
         Returns:
             list: List of Transaction objects
         """
-        # TODO: Implement filtering by type
-        # Similar to get_all() but with WHERE type = %s
-        
-        pass
+        db = DatabaseConnection()
+        db.connect()
+        query = """SELECT t.id, t.amount, t.description, t.transaction_date, t.type,
+                          t.category_id, c.name as category_name
+                   FROM transactions t
+                   LEFT JOIN categories c ON t.category_id = c.id
+                   WHERE t.type = %s
+                   ORDER BY t.transaction_date DESC"""
+        try:
+            results = db.execute_query(query, (transaction_type,))
+            transactions = []
+            for row in results:
+                t = Transaction(
+                    amount=row['amount'], description=row['description'],
+                    transaction_date=row['transaction_date'], category_id=row['category_id'],
+                    transaction_type=row['type'], transaction_id=row['id']
+                )
+                t.category_name = row.get('category_name', 'Uncategorized')
+                transactions.append(t)
+            return transactions
+        finally:
+            db.disconnect()
     
     @staticmethod
     def get_by_date_range(start_date, end_date):
@@ -182,10 +238,28 @@ class Transaction:
         Returns:
             list: List of Transaction objects
         """
-        # TODO: Implement date range filtering
-        # Similar to get_all() but with WHERE transaction_date BETWEEN %s AND %s
-        
-        pass
+        db = DatabaseConnection()
+        db.connect()
+        query = """SELECT t.id, t.amount, t.description, t.transaction_date, t.type,
+                          t.category_id, c.name as category_name
+                   FROM transactions t
+                   LEFT JOIN categories c ON t.category_id = c.id
+                   WHERE t.transaction_date BETWEEN %s AND %s
+                   ORDER BY t.transaction_date DESC"""
+        try:
+            results = db.execute_query(query, (start_date, end_date))
+            transactions = []
+            for row in results:
+                t = Transaction(
+                    amount=row['amount'], description=row['description'],
+                    transaction_date=row['transaction_date'], category_id=row['category_id'],
+                    transaction_type=row['type'], transaction_id=row['id']
+                )
+                t.category_name = row.get('category_name', 'Uncategorized')
+                transactions.append(t)
+            return transactions
+        finally:
+            db.disconnect()
     
     def __str__(self):
         """
