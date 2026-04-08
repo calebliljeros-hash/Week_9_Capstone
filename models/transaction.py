@@ -137,8 +137,8 @@ class Transaction:
             list: List of Transaction objects
         """
         db = DatabaseConnection()
-        db.connect()
-        
+        if not db.connect():
+            return []
         query = """SELECT t.id, t.amount, t.description, t.transaction_date, t.type,
                           t.category_id, c.name as category_name
                    FROM transactions t
@@ -171,7 +171,8 @@ class Transaction:
             Transaction: Transaction object or None if not found
         """
         db = DatabaseConnection()
-        db.connect()
+        if not db.connect():
+            return None
         query = """SELECT t.id, t.amount, t.description, t.transaction_date, t.type,
                           t.category_id, c.name as category_name
                    FROM transactions t
@@ -204,7 +205,8 @@ class Transaction:
             list: List of Transaction objects
         """
         db = DatabaseConnection()
-        db.connect()
+        if not db.connect():
+            return []
         query = """SELECT t.id, t.amount, t.description, t.transaction_date, t.type,
                           t.category_id, c.name as category_name
                    FROM transactions t
@@ -239,7 +241,8 @@ class Transaction:
             list: List of Transaction objects
         """
         db = DatabaseConnection()
-        db.connect()
+        if not db.connect():
+            return []
         query = """SELECT t.id, t.amount, t.description, t.transaction_date, t.type,
                           t.category_id, c.name as category_name
                    FROM transactions t
