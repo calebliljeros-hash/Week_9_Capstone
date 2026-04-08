@@ -93,8 +93,8 @@ class Category:
             list: List of Category objects
         """
         db = DatabaseConnection()
-        db.connect()
-        
+        if not db.connect():
+            return []
         query = "SELECT id, name, type, description FROM categories ORDER BY type, name"
         try:
             results = db.execute_query(query)
@@ -120,7 +120,8 @@ class Category:
             list: List of Category objects
         """
         db = DatabaseConnection()
-        db.connect()
+        if not db.connect():
+            return []
         query = "SELECT id, name, type, description FROM categories WHERE type = %s ORDER BY name"
         try:
             results = db.execute_query(query, (category_type,))
@@ -141,7 +142,8 @@ class Category:
             Category: Category object or None if not found
         """
         db = DatabaseConnection()
-        db.connect()
+        if not db.connect():
+            return None
         query = "SELECT id, name, type, description FROM categories WHERE id = %s"
         try:
             results = db.execute_query(query, (category_id,))
