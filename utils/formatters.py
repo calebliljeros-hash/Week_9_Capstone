@@ -2,8 +2,6 @@
 """
 Formatting Utilities
 Output formatting functions for the budget tracker
-
-TODO: Complete the formatting functions
 """
 
 from datetime import date, datetime
@@ -20,14 +18,15 @@ def format_currency(amount, currency_symbol="$"):
     Returns:
         str: Formatted currency string
     """
-    # TODO: Implement currency formatting
-    # 1. Convert to Decimal if needed
-    # 2. Format with 2 decimal places
-    # 3. Add thousands separators (commas)
-    # 4. Add currency symbol
-    # 5. Handle negative amounts with parentheses or minus sign
-    
-    pass  # Remove when implemented
+    if amount is None:
+        return f"{currency_symbol}0.00"
+    try:
+        amount = Decimal(str(amount))
+    except Exception:
+        return f"{currency_symbol}0.00"
+    if amount < 0:
+        return f"-{currency_symbol}{abs(amount):,.2f}"
+    return f"{currency_symbol}{amount:,.2f}"
 
 def format_date(date_obj, format_style="short"):
     """
@@ -40,12 +39,20 @@ def format_date(date_obj, format_style="short"):
     Returns:
         str: Formatted date string
     """
-    # TODO: Implement date formatting
-    # short: 03/15/2024
-    # medium: Mar 15, 2024
-    # long: March 15, 2024
-    
-    pass  # Remove when implemented
+    if date_obj is None:
+        return "N/A"
+    if isinstance(date_obj, str):
+        try:
+            date_obj = datetime.strptime(date_obj, '%Y-%m-%d').date()
+        except ValueError:
+            return date_obj
+    if format_style == "short":
+        return date_obj.strftime('%m/%d/%Y')
+    elif format_style == "medium":
+        return date_obj.strftime('%b %d, %Y')
+    elif format_style == "long":
+        return date_obj.strftime('%B %d, %Y')
+    return date_obj.strftime('%m/%d/%Y')
 
 def format_transaction(transaction):
     """
@@ -57,12 +64,14 @@ def format_transaction(transaction):
     Returns:
         str: Formatted transaction string
     """
-    # TODO: Implement transaction formatting
-    # Format: "2024-03-15 | $25.50 | Food | Coffee and pastry"
-    # Include: date, amount, category, description
-    # Different formatting for income vs expense
-    
-    pass  # Remove when implemented
+    if transaction is None:
+        return "No transaction data"
+    date_str = format_date(transaction.transaction_date) if transaction.transaction_date else "N/A"
+    amount_str = format_currency(transaction.amount)
+    type_indicator = "+" if transaction.type == "income" else "-"
+    category = getattr(transaction, 'category_name', 'Uncategorized') or 'Uncategorized'
+    desc = transaction.description or "No description"
+    return f"{date_str} | {type_indicator}{amount_str} | {category} | {desc}"
 
 def format_table(data, headers, column_widths=None):
     """
@@ -76,13 +85,27 @@ def format_table(data, headers, column_widths=None):
     Returns:
         str: Formatted table string
     """
-    # TODO: Implement table formatting
-    # 1. Calculate column widths if not provided
-    # 2. Create header row with separators
-    # 3. Format each data row
-    # 4. Handle text alignment (left/right/center)
-    
-    pass  # Remove when implemented
+    if not data and not headers:
+        return "No data to display"
+    if not column_widths:
+        column_widths = []
+        for i, header in enumerate(headers):
+            max_width = len(str(header))
+            for row in data:
+                if i < len(row):
+                    max_width = max(max_width, len(str(row[i])))
+            column_widths.append(max_width + 2)
+    lines = []
+    header_line = " | ".join(str(h).ljust(column_widths[i]) for i, h in enumerate(headers))
+    lines.append(header_line)
+    lines.append("-+-".join("-" * w for w in column_widths))
+    for row in data:
+        row_line = " | ".join(
+            str(row[i] if i < len(row) else "").ljust(column_widths[i])
+            for i in range(len(headers))
+        )
+        lines.append(row_line)
+    return "\n".join(lines)
 
 def format_percentage(value, decimal_places=1):
     """
@@ -95,10 +118,10 @@ def format_percentage(value, decimal_places=1):
     Returns:
         str: Formatted percentage string
     """
-    # TODO: Implement percentage formatting
-    # Convert decimal to percentage and add % symbol
-    
-    pass  # Remove when implemented
+    if value is None:
+        return "0.0%"
+    percentage = float(value) * 100
+    return f"{percentage:.{decimal_places}f}%"
 
 def format_number(number, decimal_places=2, use_commas=True):
     """
@@ -112,12 +135,15 @@ def format_number(number, decimal_places=2, use_commas=True):
     Returns:
         str: Formatted number string
     """
-    # TODO: Implement number formatting
-    # 1. Convert to appropriate type
-    # 2. Round to specified decimal places
-    # 3. Add commas if requested
-    
-    pass  # Remove when implemented
+    if number is None:
+        return "0"
+    try:
+        num = float(number)
+    except (ValueError, TypeError):
+        return str(number)
+    if use_commas:
+        return f"{num:,.{decimal_places}f}"
+    return f"{num:.{decimal_places}f}"
 
 def format_list_summary(items, max_items=5):
     """
@@ -130,10 +156,14 @@ def format_list_summary(items, max_items=5):
     Returns:
         str: Formatted list summary
     """
-    # TODO: Implement list summary formatting
-    # Show first max_items, then "... and X more" if longer
-    
-    pass  # Remove when implemented
+    if not items:
+        return "No items"
+    items_str = [str(item) for item in items]
+    if len(items_str) <= max_items:
+        return "\n".join(f"  - {item}" for item in items_str)
+    shown = "\n".join(f"  - {item}" for item in items_str[:max_items])
+    remaining = len(items_str) - max_items
+    return f"{shown}\n  ... and {remaining} more"
 
 def colorize_text(text, color="white"):
     """
@@ -164,11 +194,20 @@ def format_bar_chart(data, width=50):
     Returns:
         str: ASCII bar chart
     """
-    # TODO: Implement ASCII bar chart
-    # Create horizontal bars using characters like █
-    # Scale bars based on maximum value
-    
-    pass  # Remove when implemented
+    if not data:
+        return "No data for chart"
+    positive_values = [v for v in data.values() if float(v) > 0]
+    if not positive_values:
+        return "No spending data to chart"
+    max_value = max(positive_values)
+    max_label = max(len(str(k)) for k in data.keys()) if data else 0
+    lines = []
+    for label, value in data.items():
+        val = max(0, float(value))  # clamp negatives to zero for display
+        bar_length = int((val / float(max_value)) * width) if max_value > 0 else 0
+        bar = "█" * bar_length
+        lines.append(f"{str(label).ljust(max_label)} | {bar} {format_currency(value)}")
+    return "\n".join(lines)
 
 def truncate_text(text, max_length, suffix="..."):
     """
@@ -182,10 +221,14 @@ def truncate_text(text, max_length, suffix="..."):
     Returns:
         str: Truncated text
     """
-    # TODO: Implement text truncation
-    # Add suffix only if text was actually truncated
-    
-    pass  # Remove when implemented
+    if not text:
+        return ""
+    text = str(text)
+    if len(text) <= max_length:
+        return text
+    if max_length <= len(suffix):
+        return text[:max_length]
+    return text[:max_length - len(suffix)] + suffix
 
 def center_text(text, width, fill_char=" "):
     """
@@ -199,9 +242,9 @@ def center_text(text, width, fill_char=" "):
     Returns:
         str: Centered text
     """
-    # TODO: Implement text centering
-    
-    pass  # Remove when implemented
+    if not text:
+        return fill_char * width
+    return str(text).center(width, fill_char)
 
 def main():
     """
