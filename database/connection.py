@@ -3,7 +3,7 @@
 Database Connection Module
 Handles PostgreSQL database connections and basic operations
 
-TODO: Complete the database connection and query functions
+Handles PostgreSQL database connections and basic operations
 """
 
 import os
@@ -23,16 +23,11 @@ class DatabaseConnection:
         """
         Initialize database connection parameters from environment variables
         """
-        # TODO: Set up database connection parameters
-        # Hint: Use os.getenv() to get environment variables
-        # You'll need: DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT
-        
-        self.host = None  # TODO: Get from environment
-        self.database = None  # TODO: Get from environment  
-        self.user = None  # TODO: Get from environment
-        self.password = None  # TODO: Get from environment
-        self.port = None  # TODO: Get from environment (default: 5432)
-        
+        self.host = os.getenv('DB_HOST', 'localhost')
+        self.database = os.getenv('DB_NAME', 'budget_tracker')
+        self.user = os.getenv('DB_USER', 'budget_user')
+        self.password = os.getenv('DB_PASSWORD', '')
+        self.port = os.getenv('DB_PORT', '5432')
         self.connection = None
     
     def connect(self):
@@ -43,24 +38,26 @@ class DatabaseConnection:
             bool: True if connection successful, False otherwise
         """
         try:
-            # TODO: Create database connection using psycopg2.connect()
-            # Use the connection parameters from __init__
-            # Set cursor_factory=RealDictCursor for dictionary-like results
-            
-            pass  # Remove this when you implement the function
-            
+            self.connection = psycopg2.connect(
+                host=self.host,
+                database=self.database,
+                user=self.user,
+                password=self.password,
+                port=self.port,
+                cursor_factory=RealDictCursor
+            )
+            return True
         except Exception as e:
-            print(f"❌ Database connection failed: {e}")
+            print(f"Database connection failed: {e}")
             return False
     
     def disconnect(self):
         """
         Close the database connection
         """
-        # TODO: Close the connection if it exists
-        # Check if self.connection exists and close it
-        
-        pass  # Remove this when you implement
+        if self.connection:
+            self.connection.close()
+            self.connection = None
     
     def execute_query(self, query, params=None):
         """
@@ -74,16 +71,15 @@ class DatabaseConnection:
             list: Query results as list of dictionaries
         """
         try:
-            # TODO: Execute query using cursor
-            # 1. Create cursor from self.connection
-            # 2. Execute query with optional parameters
-            # 3. Fetch and return results
-            # 4. Close cursor
-            
-            pass  # Remove this when you implement
-            
+            cursor = self.connection.cursor()
+            try:
+                cursor.execute(query, params)
+                results = cursor.fetchall()
+                return results
+            finally:
+                cursor.close()
         except Exception as e:
-            print(f"❌ Query execution failed: {e}")
+            print(f"Query execution failed: {e}")
             return []
     
     def execute_update(self, query, params=None):
@@ -98,18 +94,17 @@ class DatabaseConnection:
             bool: True if successful, False otherwise
         """
         try:
-            # TODO: Execute update query
-            # 1. Create cursor
-            # 2. Execute query with parameters  
-            # 3. Commit the transaction
-            # 4. Close cursor
-            # 5. Return True if successful
-            
-            pass  # Remove this when you implement
-            
+            cursor = self.connection.cursor()
+            try:
+                cursor.execute(query, params)
+                self.connection.commit()
+                return True
+            finally:
+                cursor.close()
         except Exception as e:
-            print(f"❌ Update query failed: {e}")
-            # TODO: Rollback the transaction on error
+            print(f"Update query failed: {e}")
+            if self.connection:
+                self.connection.rollback()
             return False
     
     def test_connection(self):
