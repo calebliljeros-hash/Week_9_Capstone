@@ -3,8 +3,6 @@
 Personal Budget Tracker - Main Application
 A command-line interface for managing personal finances
 
-A command-line interface for managing personal finances
-
 Author: [Your Name Here]
 Date: [Date]
 """
@@ -20,7 +18,7 @@ from models.transaction import Transaction
 from models.category import Category
 from services.transaction_service import TransactionService
 from services.report_service import ReportService
-from utils.validators import validate_amount, validate_date, validate_transaction_type, validate_positive_integer
+from utils.validators import validate_amount, validate_date, validate_transaction_type, validate_positive_integer, validate_description, validate_category_name
 from utils.formatters import format_currency, format_date, format_table
 
 class BudgetTracker:
@@ -131,7 +129,6 @@ class BudgetTracker:
             # Get amount
             amount = self.get_user_input("Amount: $", validate_amount)
             # Get description
-            from utils.validators import validate_description
             description = self.get_user_input("Description: ", validate_description)
             # Show categories and get selection
             if type_input == 'income':
@@ -296,7 +293,10 @@ class BudgetTracker:
                 month_input = input("Month 1-12 (Enter for current): ").strip()
                 year = int(year_input) if year_input else None
                 month = int(month_input) if month_input else None
-                print(ReportService.generate_monthly_report(year, month))
+                if month is not None and (month < 1 or month > 12):
+                    print("Month must be between 1 and 12.")
+                else:
+                    print(ReportService.generate_monthly_report(year, month))
             elif choice == '5':
                 print(ReportService.generate_trend_report(30))
             elif choice == '6':
@@ -339,7 +339,7 @@ class BudgetTracker:
                 count = cat.get_transaction_count()
                 print(f"{cat.id:<5} {cat.name:<20} {cat.type:<10} {cat.description or ''} ({count} txns)")
         elif choice == '2':
-            name = self.get_user_input("Category name: ")
+            name = self.get_user_input("Category name: ", validate_category_name)
             cat_type = self.get_user_input("Type (income/expense): ", validate_transaction_type)
             desc = input("Description (optional): ").strip() or None
             category = Category(name=name, category_type=cat_type, description=desc)

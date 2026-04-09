@@ -2,8 +2,6 @@
 """
 Validation Utilities
 Input validation functions for the budget tracker
-
-Input validation functions for the budget tracker
 """
 
 from datetime import date, datetime

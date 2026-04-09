@@ -2,8 +2,6 @@
 """
 Transaction Service
 Business logic for managing transactions
-
-Business logic for managing transactions
 """
 
 from datetime import date, datetime

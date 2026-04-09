@@ -2,8 +2,6 @@
 """
 Report Service
 Generates financial reports and analytics
-
-Generates financial reports and analytics
 """
 
 from datetime import date, datetime, timedelta
